@@ -52,6 +52,7 @@ def svcBinaryClassifier():
     X_2 = X_2.toarray() - unigram_vectorizer.transform(data["text2"]).toarray()
 
     #Entrenamiento SVC
+    #----------------------------------kernel lineal
     clf = SVC(gamma='auto',probability=True)
     clf.fit(X_2, data["value"])
     
