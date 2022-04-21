@@ -1,8 +1,6 @@
 import os
 import re
-from tabnanny import check
 import numpy as np
-import platform
 import argparse
 import subprocess
 import pandas as pd
@@ -54,7 +52,11 @@ def svcBinaryClassifier():
     #Entrenamiento SVC
     #----------------------------------kernel lineal
     clf = SVC(kernel='linear', probability=True, tol=1e-3)
-    clf.fit(X_2, data["value"])
+
+    X_2 = X_2[:200]
+    Y = data["value"][:200]
+
+    clf.fit(X_2, Y)
     
     data_test = pd.DataFrame(getDataJSON(args.t)).set_index("id")
     data_test[['text1','text2']] = pd.DataFrame(data_test.pair.tolist(), index= data_test.index)
