@@ -53,7 +53,7 @@ def svcBinaryClassifier():
 
     #Entrenamiento SVC
     #----------------------------------kernel lineal
-    clf = SVC(gamma='auto',probability=True)
+    clf = SVC(kernel='linear', probability=True, tol=1e-3)
     clf.fit(X_2, data["value"])
     
     data_test = pd.DataFrame(getDataJSON(args.t)).set_index("id")
