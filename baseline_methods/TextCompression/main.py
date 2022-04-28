@@ -62,6 +62,7 @@ Supplementary files:
     PPM order=5, using data of data-small.txt
 """
 
+from ast import arg
 import re
 import os
 import json
@@ -365,109 +366,73 @@ def apply_model(path_test,path_truth, path_model, radius=0.05):
     
     BASE_DIR = Path(__file__).resolve().parent
     model = load(path_model)
-    print(model)
-    answers = []
-    with open(path_test, 'r') as fp:
-        for i, line in enumerate(fp):
-            prob = json.loads(line)
-            prob_id = prob['id']
-            pair_0 = prob['pair'][0]
-            pair_1 = prob['pair'][1]
-            cross_entropy = distance(pair_0, pair_1)
+    with open(path_test) as f:
+        data = json.load(f)
+    for dict in data:
+        result = [] 
+        config = []
+        for dict_line in dict:
+            cross_entropy = distance(dict_line['pair'][0], dict_line['pair'][1])
             proba_predicted = model.predict_proba([cross_entropy])
             proba_same = proba_predicted[0][1]
+            if 0.5 - radius <= proba_same <= 0.5 + radius:
+                proba_same = 0.5
+            result.append(proba_same)
+            config.append(0)
+        
+        config[np.argmin(result)] = 1
 
-            if(path_model.split("/")[-1] != "model_pan15.joblib"):
-                if 0.5 - radius <= proba_same <= 0.5 + radius:
-                    proba_same = 0.5
-            answers.append({'id': prob_id, 'value': round(proba_same, 3)})
-
-            
-            if i%200==0:
-                print(f"{i+1} elementos analizados")
-
-    prediction_folder = os.path.join(BASE_DIR,'prediction')
-
-    agrupacion_id = []
-    agrupacion_score = []
-    inicial = None
-    numero_parrafos = set()
-    i = 0
-    for ans in answers:
-        id = ans["id"]
-        if i == 0:
-            inicial = re.findall(r'([0-9]+)-[0-9]+-[0-9]+',id)[0]
-        i+=1
-        if re.findall(r'([0-9]+)-[0-9]+-[0-9]+',ans["id"])[0] == inicial:
-            numero_parrafos = numero_parrafos.union({int(re.findall(r'[0-9]+-([0-9]+)-[0-9]+',id)[0])})
-            agrupacion_id.append(id)
-            agrupacion_score.append(ans["value"])
-        else:
-            cota_superior = max(numero_parrafos)
-            index = np.argmin(agrupacion_score)
-            resultado = []
-            indice_cambio = int(re.findall(r'[0-9]+-([0-9])+-[0-9]+',agrupacion_id[index])[0])
-            for i in range(cota_superior+1):
-                if i == indice_cambio:
-                    resultado.append(1)
-                else:
-                    resultado.append(0)
-            with open(os.path.join(BASE_DIR,"prediction",f"prediction-problem-{inicial}.json"),"w+") as f:
-                f.write(str({"changes":resultado}).replace("'[","[").replace("']","]").replace("'",'"'))
-            inicial = re.findall(r'([0-9]+)-[0-9]+-[0-9]+',id)[0]
-            agrupacion_id = [id]
-            agrupacion_score = [ans["value"]]
-            numero_parrafos = {int(re.findall(r'[0-9]+-([0-9]+)-[0-9]+',id)[0])}           
-    if agrupacion_id:
-        cota_superior = max(numero_parrafos)
-        index = np.argmin(agrupacion_score)
-        resultado = []
-        indice_cambio = int(re.findall(r'[0-9]+-([0-9])+-[0-9]+',agrupacion_id[index])[0])
-        for i in range(cota_superior+1):
-            if i == indice_cambio:
-                resultado.append(1)
-            else:
-                resultado.append(0)
-        with open(os.path.join(BASE_DIR,"prediction",f"prediction-problem-{inicial}.json"),"w+") as f:
-            f.write(str({"changes":resultado}).replace("'[","[").replace("']","]").replace("'",'"'))
-
-    print("Predictions saved in:", prediction_folder)
+        problem_number = int(re.findall(r'([0-9]+)-[0-9]+-[0-9]+',dict_line["id"])[0])
+        with open(os.path.join(BASE_DIR,"prediction",f"prediction-problem-{problem_number}.json"),"w+") as f:
+            json.dump({"changes":config},f)
     
-    # time.sleep(4)
-    # EVALUATION_DIR = os.path.join(BASE_DIR,"..","..","resultados","TextCompression")    
-    # evaluation_route = os.path.join(EVALUATION_DIR,folder_name)
-    # if not os.path.exists(evaluation_route):
-    #     os.makedirs(evaluation_route)
+    PREDICTION_DIR = os.path.join(BASE_DIR,"prediction") 
+    OUTPUT_DIR = os.path.join(BASE_DIR,"..","..","resultados","TextCompression")
 
-    # if "Windows" in platform.system():
-    #     subprocess.run(["python","../../utils/verif_evaluator.py","-i",
-    #         path_truth,"-a",prediction_folder,"-o", evaluation_route])
-    # else:
-    #     subprocess.run(["python3","../../utils/verif_evaluator.py","-i",
-    #         path_truth,"-a",prediction_folder,"-o", evaluation_route])
+    if "Windows" in platform.system():
+        subprocess.run(["python","../../utils/evaluator_2022.py","-p",
+            PREDICTION_DIR,"-t",path_truth,"-o",
+            OUTPUT_DIR], capture_output=True)
+    else:
+        subprocess.run(["python3","../../utils/evaluator_2022.py","-p",
+            PREDICTION_DIR,"-t",path_truth,"-o",
+            OUTPUT_DIR], capture_output=True)
 
 def main():
-    parser = argparse.ArgumentParser(description='PAN21 Cross-domain Authorship Verification task: Baseline Compressor')
-    parser.add_argument('-i', type=str, help='Full path name to the evaluation dataset JSONL file')
-    parser.add_argument('-v', type=str, help='Full path name to the evaluation truth dataset JSONL file')
-    parser.add_argument('-m', type=str, default='model_small.joblib', help='Full path name to the model file')
-    parser.add_argument('-r', type=float, default=0.05, help='Radius around 0.5 to leave verification cases unanswered')
+    parser = argparse.ArgumentParser(description='PAN22 Cross-domain Style Changing task: 1')
+    
+    parser.add_argument('-train_pairs', type=str, help='.jsonl file with train data to create model (optional in case that have a model)')
+    parser.add_argument('-train_truth', type=str, help='.jsonl file with train data truth to create model (optional in case that have a model)')
+    
+    parser.add_argument('-test_pairs', type=str, help='Path name to the validation/test dataset .json file')
+    parser.add_argument('-test_truth', type=str, help='Path name to the validation/test truth dataset folder')
+    
+    parser.add_argument('-model', type=str, help='Path to the model file .joblib (if dont exist use -train_pairs and -train_truth arguments instead)')
+    parser.add_argument('-radius', type=float, default=0.05, help='Radius around 0.5 to leave verification cases unanswered')
     args = parser.parse_args()
 
-    if not args.i:
-        print('ERROR: The evaluation file is required')
+    if args.model == None:
+        if not args.train_pairs:
+            print('ERROR: If model no provided is necesary the train file')
+            parser.exit(1)
+        if not args.train_truth:
+            print('ERROR: If model no provided is necesary the train truth file')
+            parser.exit(1)
+        print("---- TRAINING MODEL ----")
+        prepare_data(args.train_pairs,args.train_truth,"./model/entropy.txt")
+        train_model("./model/entropy.txt", "./model/model_pan.joblib")
+        args.model = "./model/model_pan.joblib"
+    if not args.test_pairs:
+        print('ERROR: The valitadion/test folder is required')
         parser.exit(1)
-    if not args.v:
-        print('ERROR: The evaluation truth file is required')
+    if not args.test_truth:
+        print('ERROR: The validation/test truth folder is required')
         parser.exit(1)
-    if  ".jsonl" not in args.i:
-        raise ValueError('The evaluation file will be .jsonl')
-    if  ".jsonl" not in args.v:
-        raise ValueError('The evaluation truth file will be .jsonl')    
-    apply_model(args.i, args.v, args.m, args.r)
+    if  ".json" not in args.test_pairs:
+        raise ValueError('The validation/test file will be .json')
+    print("---- APPLYING MODEL ----")
+    apply_model(args.test_pairs, args.test_truth, args.model, args.radius)
 
 
 if __name__ == '__main__':
-    #prepare_data("../../corpus/pan22/train.jsonl","../../corpus/pan22/train_truth.jsonl","./model/entropy.txt")
-    #train_model("./model/entropy.txt", "./model/model_pan22.joblib")
     main()
