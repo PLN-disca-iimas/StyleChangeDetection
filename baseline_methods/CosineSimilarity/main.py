@@ -96,9 +96,6 @@ def main():
                         help='Path to the jsonl-file with the test pairs')
     parser.add_argument('-test_truth', type=str, required=True,
                         help='Path to the ground truth-file for the test pairs')
-    parser.add_argument('-output', type=str, required=True,
-                        help='Path to the output folder for the predictions.\
-                             (Will be overwritten if it exist already.)')
 
     # algorithmic settings:
     parser.add_argument('-seed', default=2020, type=int,
@@ -145,10 +142,6 @@ def main():
     vectorizer = TfidfVectorizer(max_features=args.vocab_size, analyzer='char',
                                  ngram_range=(args.ngram_size, args.ngram_size))
     vectorizer.fit(texts)
-
-    #vectorizer = HashingVectorizer(n_features=args.vocab_size, analyzer='char',
-      #                           ngram_range=(args.ngram_size, args.ngram_size))
-    #vectorizer.fit(texts)
 
     print('HECHO')
 
@@ -220,75 +213,44 @@ def main():
 
     print('-> calculating test similarities')
     BASE_DIR = Path(__file__).resolve().parent
-    agrupacion_id = []
-    agrupacion_score = []
-    inicial = None
-    numero_parrafos = set()
-    i = 0
-    for line in tqdm(open(args.test_pairs)):
-        d = json.loads(line.strip())
-        if i == 0:
-            inicial = re.findall(r'([0-9]+)-[0-9]+-[0-9]+',d["id"])[0]
-        i+=1
-        problem_id = d['id']
-        x1, x2 = vectorizer.transform(d['pair']).toarray()
-        if args.num_iterations:
-            similarities_ = []
-            for i in range(args.num_iterations):
-                similarities_.append(cosine_sim(x1[rnd_feature_idxs[i, :]],
+
+    with open(args.test_pairs) as f:
+        data = json.load(f)
+
+    for line in data:
+        result = [] 
+        config = []
+        for dict_line in line:
+            x1, x2 = vectorizer.transform(dict_line['pair']).toarray()
+            if args.num_iterations:
+                similarities_ = []
+                for i in range(args.num_iterations):
+                    similarities_.append(cosine_sim(x1[rnd_feature_idxs[i, :]],
                                                 x2[rnd_feature_idxs[i, :]]))
-                similarity = np.mean(similarities_)
-        else:
-            similarity = cosine_sim(x1, x2)
-
-        similarity = correct_scores([similarity], p1=opt_p1, p2=opt_p2)[0]
-        if re.findall(r'([0-9]+)-[0-9]+-[0-9]+',d["id"])[0] == inicial:
-            numero_parrafos = numero_parrafos.union({int(re.findall(r'[0-9]+-([0-9]+)-[0-9]+',d["id"])[0])})
-            agrupacion_id.append(problem_id)
-            agrupacion_score.append(similarity)
-        else:
-            cota_superior = max(numero_parrafos)
-            index = np.argmin(agrupacion_score)
-            resultado = []
-            indice_cambio = int(re.findall(r'[0-9]+-([0-9])+-[0-9]+',agrupacion_id[index])[0])
-            for i in range(cota_superior+1):
-                if i == indice_cambio:
-                    resultado.append(1)
-                else:
-                    resultado.append(0)
-            with open(os.path.join(BASE_DIR,"prediction",f"prediction-problem-{inicial}.json"),"w+") as f:
-                f.write(str({"changes":resultado}).replace("'[","[").replace("']","]").replace("'",'"'))
-            inicial = re.findall(r'([0-9]+)-[0-9]+-[0-9]+',d["id"])[0]
-            agrupacion_id = [problem_id]
-            agrupacion_score = [similarity]
-            numero_parrafos = {int(re.findall(r'[0-9]+-([0-9]+)-[0-9]+',d["id"])[0])}           
-    if agrupacion_id:
-        cota_superior = max(numero_parrafos)
-        index = np.argmin(agrupacion_score)
-        resultado = []
-        indice_cambio = int(re.findall(r'[0-9]+-([0-9])+-[0-9]+',agrupacion_id[index])[0])
-        for i in range(cota_superior+1):
-            if i == indice_cambio:
-                resultado.append(1)
+                    similarity = np.mean(similarities_)
             else:
-                resultado.append(0)
-        with open(os.path.join(BASE_DIR,"prediction",f"prediction-problem-{inicial}.json"),"w+") as f:
-            f.write(str({"changes":resultado}).replace("'[","[").replace("']","]").replace("'",'"'))
+                similarity = cosine_sim(x1, x2)
 
-    # EVALUATION_DIR = os.path.join(BASE_DIR,"..","..","resultados","CosineSimilarity")    
-    # evaluation_route = os.path.join(EVALUATION_DIR,re.findall(r'^([A-Za-z0-9]+).*\.jsonl$',args.output)[0])
-        
-    # if not os.path.exists(evaluation_route):
-    #     os.makedirs(evaluation_route)
+            similarity = correct_scores([similarity], p1=opt_p1, p2=opt_p2)[0]
+            result.append(similarity)
+            config.append(0)
+        config[np.argmin(result)] = 1
 
-    # if "Windows" in platform.system():
-    #     subprocess.run(["python","../../utils/evaluator_2022.py","-p",
-    #         args.test_truth,"-a",os.path.join(BASE_DIR,"prediction",args.output),"-o",
-    #         evaluation_route], capture_output=True)
-    # else:
-    #     subprocess.run(["python3","../../utils/evaluator_2022.py","-p",
-    #         args.test_truth,"-a",os.path.join(BASE_DIR,"prediction",args.output),"-o",
-    #         evaluation_route], capture_output=True)            
+        problem_number = int(re.findall(r'([0-9]+)-[0-9]+-[0-9]+',dict_line["id"])[0])
+        with open(os.path.join(BASE_DIR,"prediction",f"prediction-problem-{problem_number}.json"),"w+") as f:
+            json.dump({"changes":config},f)
+
+    PREDICTION_DIR = os.path.join(BASE_DIR,".","prediction") 
+    OUTPUT_DIR = os.path.join(BASE_DIR,"..","..","resultados","CosineSimilarity")
+
+    if "Windows" in platform.system():
+        subprocess.run(["python","../../utils/evaluator_2022.py","-p",
+            PREDICTION_DIR,"-t",args.test_truth,"-o",
+            OUTPUT_DIR], capture_output=True)
+    else:
+        subprocess.run(["python3","../../utils/evaluator_2022.py","-p",
+            PREDICTION_DIR,"-t",args.test_truth,"-o",
+            OUTPUT_DIR], capture_output=True)            
 
 
 if __name__ == '__main__':
