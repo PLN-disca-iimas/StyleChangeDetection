@@ -2,7 +2,3 @@ measure{
   key: "task1_f1_score"
   value: "0.5270650009053051"
 }
-measure{
-  key: "task1_f1_score"
-  value: "0.5270650009053051"
-}

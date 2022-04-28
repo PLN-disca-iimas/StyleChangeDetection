@@ -7,8 +7,7 @@
 Para ejecutar el script, usando los datos del pan22 ya preparados (revisar carpeta `corpus` en la raíz del proyecto) y sin un modelo previamente entrenado:
 
 ```sh
-python3 main.py \
-    -train_pairs="../../corpus/pan22/dataset1/prepared/train/train.jsonl" \ 
+python3 main.py -train_pairs="../../corpus/pan22/dataset1/prepared/train/train.jsonl" \ 
     -train_truth="../../corpus/pan22/dataset1/prepared/train/train_truth.jsonl" \
     -test_pairs="../../corpus/pan22/dataset1/prepared/validation/validation.json" \
     -test_truth="../../corpus/pan22/dataset1/validation"
@@ -17,8 +16,7 @@ python3 main.py \
 En caso de que ya cuente con un modelo entrenado `.joblib` los argumentos cambian a:
 
 ```sh
-python3 main.py \
-    -model="./model/model_pan.joblib" \
+python3 main.py -model="./model/model_pan.joblib" \
     -test_pairs="../../corpus/pan22/dataset1/prepared/validation/validation.json" \
     -test_truth="../../corpus/pan22/dataset1/validation"
 ```

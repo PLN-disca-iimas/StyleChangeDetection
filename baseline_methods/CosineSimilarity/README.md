@@ -4,11 +4,10 @@
 Para ejecutar el script, usando los datos del pan22 ya preparados (revisar carpeta `corpus` en la raíz del proyecto):
 
 ```sh
-python3 main.py \
-    -input_pairs="../../corpus/pan22/dataset1/prepared/train/train.jsonl" \
+python3 main.py -input_pairs="../../corpus/pan22/dataset1/prepared/train/train.jsonl" \
     -input_truth="../../corpus/pan22/dataset1/prepared/train/train_truth.jsonl" \ 
     -test_pairs="../../corpus/pan22/dataset1/prepared/validation/validation.json" \
-    -test_truth="../../corpus/pan22/dataset1/validation" \
+    -test_truth="../../corpus/pan22/dataset1/validation"
 ```
 
 Salida:

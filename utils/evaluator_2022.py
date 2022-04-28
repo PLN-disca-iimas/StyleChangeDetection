@@ -78,7 +78,7 @@ def write_output(filename: str, k: str, v: str):
     """
     line = 'measure{{\n  key: "{}"\n  value: "{}"\n}}\n'.format(k, str(v))
     print(line)
-    open(filename, "a").write(line)
+    open(filename, "w").write(line)
 
 
 def main():

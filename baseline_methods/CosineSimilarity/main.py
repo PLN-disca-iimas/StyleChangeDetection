@@ -89,13 +89,13 @@ def main():
 
     # data settings:
     parser.add_argument('-input_pairs', type=str, required=True,
-                        help='Path to the jsonl-file with the input pairs')
+                        help='Path to the jsonl-file with the train pairs')
     parser.add_argument('-input_truth', type=str, required=True,
-                        help='Path to the ground truth-file for the input pairs')
+                        help='Path to the ground truth jsonl-file for the train pairs')
     parser.add_argument('-test_pairs', type=str, required=True,
-                        help='Path to the jsonl-file with the test pairs')
+                        help='Path to the json-file with the validation/test pairs')
     parser.add_argument('-test_truth', type=str, required=True,
-                        help='Path to the ground truth-file for the test pairs')
+                        help='Path to the ground truth-file for the validation folder')
 
     # algorithmic settings:
     parser.add_argument('-seed', default=2020, type=int,
