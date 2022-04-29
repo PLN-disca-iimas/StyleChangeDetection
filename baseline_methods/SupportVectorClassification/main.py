@@ -39,7 +39,7 @@ def svcBinaryClassifier():
     data = pd.merge(data,data2,how='outer',left_index=True,right_index=True)
     del data2
 
-    unigram_vectorizer = CountVectorizer(ngram_range=(1, 1), token_pattern=r'\b\w+\b', min_df=1)
+    unigram_vectorizer = CountVectorizer(ngram_range=(1, 1), token_pattern=r'\b\w+\b', min_df=1, max_features=10000)
     X_2 = unigram_vectorizer.fit_transform(data["text1"])
     X_2 = X_2.toarray() - unigram_vectorizer.transform(data["text2"]).toarray()
     Y = data["value"]
@@ -47,11 +47,13 @@ def svcBinaryClassifier():
     #Entrenamiento SVC
     #----------------------------------kernel lineal
     clf = SVC(kernel='linear', probability=True)
-    clf.fit(X_2, Y)    
+    print("%%%%% TRAINING MODEL %%%%")
+    clf.fit(X_2, Y)
 
     #Conjunto de test/validation
     with open(args.test_pairs) as f:
         data = json.load(f)
+    print("----------- PREDICTION ------------")
     for dict in data:
         pred = []
         conf = []
@@ -65,7 +67,7 @@ def svcBinaryClassifier():
         problem_number = int(re.findall(r'([0-9]+)-[0-9]+-[0-9]+',dict_line["id"])[0])
         with open(os.path.join(BASE_DIR,"prediction",f"prediction-problem-{problem_number}.json"),"w+") as f:
             json.dump({"changes":conf},f)
-    
+
     PREDICTION_DIR = os.path.join(BASE_DIR,".","prediction") 
     OUTPUT_DIR = os.path.join(BASE_DIR,"..","..","resultados","CosineSimilarity")
 
@@ -77,6 +79,6 @@ def svcBinaryClassifier():
         subprocess.run(["python3","../../utils/evaluator_2022.py","-p",
             PREDICTION_DIR,"-t",args.test_truth,"-o",
             OUTPUT_DIR], capture_output=True)
-            
+
 if __name__ == "__main__":
     svcBinaryClassifier()
