@@ -1,0 +1,18 @@
+Preparar data de entrenamiento:
+
+    Utiliza de entrada archivos con el "formato de problem-000.txt" y "truth-problem-000.json" y a una carpeta con nombre "prepared" donde crea los archivos "train.jsonl" y "tain_truth.jsonl" a partir de estos.
+    Invocación:
+        'python3 newprepare.py -d "directorio del la carpeta de train data" -p "directorio de la carpeta de salida prepared (si no existe la creará)." '
+
+Entrenar modelo SVM:
+
+    Entrena un modelo de SVM recibiendo de entrada la carpeta de train data preparada y un modelo Word2Vec ya preentrenado, tiene como salida un modelo SVM entrenado.
+    También realiza reducción de dimensionalidad y ploteo de las parejas de vectores.
+    Invocación:
+        'python3 trainmodelsvm.py -m "directorio del modelo preentrenado Word2Vec" -d "directorio de la carpeta de train data preparada" -p "directorio y nombre.pkl de salida del modelo SVM"
+
+Evaluar modelo SVM:
+
+    Utiliza el modelo SVM para evaluar data de verficacion y hacer predicciones.
+    Invocación:
+        'python3 evaluatemodelsvm.py -m "directorio del modelo preentrenado Word2Vec" -d "directorio de validation data" -p "directorio de salida de las predicciones" -s "directorio del modelo SVM de entrada"
